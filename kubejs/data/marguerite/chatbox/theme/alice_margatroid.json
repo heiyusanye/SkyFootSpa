@@ -1,0 +1,46 @@
+{
+  "portrait": {
+    "authors": {
+      "type": "texture",
+      "x": 0, "y": -5, "width": 20, "height": 40,
+      "alignX": "left", "alignY": "bottom",
+      "texture": "chatbox:textures/portrait/authors.png"
+    },
+    "head": {
+      "type": "player_head",
+      "x": 40, "y": 15, "width": 10,
+      "texture": "@s",
+      "renderOrder": -10
+    }
+  },
+  "option": {
+    "texture": "chatbox:textures/options/gal_no_checked_option.png",
+    "selectTexture": "chatbox:textures/options/gal_checked_option.png",
+    "lockTexture": "chatbox:textures/options/gal_no_checked_option.png",
+    "x": 0, "y": 17, "width": 45, "height": 8,
+    "alignX": "center", "alignY": "top",
+    "optionChatX": 0, "optionChatY": 2.7, "textAlign": "center",
+    "hidden": true
+  },
+  "dialogBox": {
+    "texture": "marguerite:textures/chatbox/bg.png",
+    "alignX": "center", "alignY": "bottom", "lineWidth": 70,
+    "width": 80, "height": 40,"y": -5,
+    "nameX": 20, "nameY": 10, "textX": 20, "textY": 15,
+    "attachment": [
+        {
+          "type": "text",
+          "value": "Ciallo～(∠·ω< )⌒★",
+          "x": 3, "y": 3,
+          "width": 30,
+          "height": 0,
+          "textAlign": "left",
+          "textColor": -1,
+          "lineBreak": false
+        }
+      ],
+    "renderEvents": [
+      {"trigger": "end", "type": "show", "value": "@Options"}
+    ]
+  }
+}

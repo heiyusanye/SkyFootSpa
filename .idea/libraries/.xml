@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="洗手">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/洗手.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

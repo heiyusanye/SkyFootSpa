@@ -10,6 +10,5 @@ sortReversed:false
 ignoreHeightmaps:false
 
 //dimension types (DO NOT EDIT)
-dimensionType:dimdungeons$dungeon_dimension:dimdungeons$dungeon_dimension
 dimensionType:minecraft$overworld:minecraft$overworld
 //server waypoints
