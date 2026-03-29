@@ -76,19 +76,53 @@ global.pfOnStartSleep = function (entity, level, bedPos, currentTick) {
 global.pfShouldWakeUp = function (entity, level, bedPos, sleepDuration) {
     let uuid = "" + entity.getUuid()
 
-    // 10秒（200 tick）超时起床
-    if (sleepDuration > 200) {
-        console.log("[SLEEP-JS] 睡眠超时 200 tick，起床 uuid=" + uuid)
-        return true
-    }
+    // // 10秒（200 tick）超时起床
+    // if (sleepDuration > 200) {
+    //     console.log("[SLEEP-JS] 睡眠超时 200 tick，起床 uuid=" + uuid)
+    //     return true
+    // }
 
-    // 检测 serve_finish 字段，存在则起床
-    let serveFinish = entity.persistentData.getInt("serve_finish")
-    if (serveFinish === 1) {
-        console.log("[SLEEP-JS] 检测到 serve_finish 标记，起床")
-        // 清除标记
-        entity.persistentData.putInt("serve_finish", 0)
-        return true
+    // // 检测 serve_finish 字段，存在则起床
+    // let serveFinish = entity.persistentData.getInt("serve_finish")
+    // if (serveFinish === 1) {
+    //     console.log("[SLEEP-JS] 检测到 serve_finish 标记，起床")
+    //     // 清除标记
+    //     entity.persistentData.putInt("serve_finish", 0)
+    //     return true
+    // }
+
+    // 检查需求清单是否全部为0
+    let item = entity.getMainHandItem()
+    if (item && item.id === 'minecraft:redstone' && item.nbt) {
+        let nbt = item.nbt
+        let jiaobei = nbt.getInt('pfDemandJiaobei') || 0
+        let jiaozhang = nbt.getInt('pfDemandJiaozhang') || 0
+        let jiaogen = nbt.getInt('pfDemandJiaogen') || 0
+        let jiaozhi = nbt.getInt('pfDemandJiaozhi') || 0
+        let jiaoxin = nbt.getInt('pfDemandJiaoxin') || 0
+        
+        // 所有需求都为0时才能起床
+        if (jiaobei === 0 && jiaozhang === 0 && jiaogen === 0 && jiaozhi === 0 && jiaoxin === 0) {
+            console.log("[SLEEP-JS] 所有需求已清零，起床 uuid=" + uuid)
+            
+            // 掉落钻石：数量 = 10 * 满意度 * 总步骤数
+            let satisfaction = nbt.getInt('pfSatisfaction') || 0
+            let totalSteps = nbt.getInt('pfTotalSteps') || 0
+            let diamondCount = Math.floor(satisfaction * totalSteps / 100)
+            console.log("[SLEEP-JS] 需求完成！掉落钻石: " + diamondCount + "个 (满意度=" + satisfaction + "%, 总步骤数=" + totalSteps + ")")
+            if (diamondCount > 0) {
+                // 使用原版指令生成钻石物品
+
+                let x = entity.x
+                let y = (entity.y + 1)
+                let z = entity.z
+                let cmd = 'summon item ' + x + ' ' + y + ' ' + z + ' {Item:{id:"minecraft:diamond",Count:' + diamondCount + 'b}}'
+                level.getServer().runCommandSilent(cmd)
+                console.log("[SLEEP-JS] 执行指令: " + cmd)
+            }
+            
+            return true
+        }
     }
 
     return false

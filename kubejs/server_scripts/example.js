@@ -1,6 +1,6 @@
 ItemEvents.rightClicked(event => {
     console.log(event)
-    global.rightClickedEntity(event)
+    // global.rightClickedEntity(event)
 })
 
 /**

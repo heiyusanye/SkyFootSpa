@@ -1,14 +1,294 @@
 <body>
-    <div class="main-container">
-        <div class="header">
-            <div class="title">脚部交互区域</div>
-            <div class="close-btn" id="closeBtn">✕</div>
-        </div>
+  <div class="main-container">
+    <div class="header">
+      <span class="title">需求清单</span>
     </div>
+    <!-- 需求列表 -->
+    <div class="requieList">
+      <div class="left">
+        <div class="instep">
+          <span class="label">脚背：</span>
+          <span class="count" id="countJiaobei">3次</span>
+        </div>
+        <div class="footsole">
+          <span class="label">脚掌：</span>
+          <span class="count" id="countJiaozhang">2次</span>
+        </div>
+        <div class="heel">
+          <span class="label">脚跟：</span>
+          <span class="count" id="countJiaogen">1次</span>
+        </div>
+        <div class="footheart">
+          <span class="label">脚心：</span>
+          <span class="count" id="countJiaoxin">3次</span>
+        </div>
+        <div class="toe">
+          <span class="label">脚趾：</span>
+          <span class="count" id="countJiaozhi">2次</span>
+        </div>
+      </div>
+      <div class="right">
+        <div class="fooSoak">
+          <span class="text">泡脚：</span>
+          <span class="red-x">✕</span>
+        </div>
+        <div class="addOil">
+          <span class="text">抹油：</span>
+          <span class="red-x">✕</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+          <div class="satisfaction">
+          <span class="progress-wrapper">
+                      <span class="text">满意度：</span>
+            <span class="progress-bracket">[</span>
+            <span class="progress-filled" id="progressFilled"></span>
+            <span class="progress-empty" id="progressEmpty"></span>
+            <span class="progress-bracket-right">]</span>
+          </span>
+          <span class="progress-percent" id="satisfactionPercent">0%</span>
+        </div>
+  
+  <!-- 步骤记录 -->
+  <div class="steps-container" id="stepsContainer">
+    <span class="steps-label">已执行:</span>
+    <span class="steps-text" id="stepsText"></span>
+  </div>
+  
+  <!-- 脚 -->
+  <div class="main-btn">
+      <div class="btn-container" id="footBtn">
+          <span>脚</span>
+      </div>
+  </div>
 </body>
 <style>
 
+  .main-container {
+    width: 100px;
+    height: 70px;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.289);
+    border-radius: 10px;
+    border: 1px solid #888;
+  }
+
+  .header {
+    /* 横向居中 */
+    width: 100%;
+    padding: 3;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .title {
+    color: #ffffff;
+    flex: 1;
+  }
+
+  /* 需求列表 */
+  .requieList {
+    width: 90px;
+    display: flex;
+    flex-direction: row;
+    padding-left: 5px;
+    justify-content: space-between;
+    color: white;
+    line-height: 20px;
+  }
+
+  /* 需求项横向排布 */
+  .instep, .footsole, .heel, .footheart, .toe {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* 泡脚、抹油横向排布 */
+  .fooSoak, .addOil {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .satisfaction {
+    margin-top: 74px;
+    margin-left: 7px;
+    display: flex;
+    flex-direction: row;
+  }
+
+  /* 需求标签样式 */
+  .label {
+    font-size: 14px;
+    color: #ffffff;
+  }
+
+  /* 次数样式 - 默认浅蓝色 */
+  .count {
+    font-size: 14px;
+    color: #87CEEB;
+  }
+
+  /* 完成样式 - 绿色对号 */
+  .count.done {
+    color: #00FF00;
+  }
+
+  input {
+    width: 14px;
+    height: 14px;
+    margin: 8px;
+    margin-left: 0;
+  }
+
+  .right {
+    width: 32;
+  }
+
+  .left {
+    width: 32;
+  }
+
+  /* 高亮 */
+  .highlight {
+    font-size: 14px;
+    color: #f5c76f;
+  }
+
+  /* 满意度颜色 */
+  .highlight.red {
+    color: #ff4444;
+  }
+
+  .highlight.yellow {
+    color: #ffcc00;
+  }
+
+  .highlight.green {
+    color: #44ff44;
+  }
+
+  /* 满意度进度条 */
+  .progress-wrapper {
+        flex-direction: row;
+    font-size: 14px;
+    font-family: monospace;
+  }
+
+  .progress-bracket {
+    color: #ffffff;
+  }
+
+  .progress-bracket-right {
+    color: #ffffff;
+    margin-left: 38px;
+  }
+
+  .progress-filled {
+    color: #ffffff;
+  }
+
+  .progress-filled.red {
+    color: #ff4444;
+  }
+
+  .progress-filled.yellow {
+    color: #ffcc00;
+  }
+
+  .progress-filled.green {
+    color: #44ff44;
+  }
+
+  .progress-empty {
+    color: #ffffff;
+  }
+
+  .progress-percent {
+    font-size: 14px;
+    color: #ffffff;
+    margin-left: 2px;
+  }
+
+  /* 红色X */
+  .red-x {
+    color: #ff4444;
+    font-size: 14px;
+  }
+
+  .add {
+    color: green;
+  }
+
+  .reduce {
+    color: red;
+  }
+
+  .text {
+    font-size: 14px;
+    color: #ffffff;
+  }
+
+  /* 中间按钮 */
+  .main-btn {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .btn-container {
+    margin-top: 4px;
+    width: 100px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid #888;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    background-color: rgba(0, 0, 0, 0.289);
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.5s;
+  }
+
+  /* 点击动画 - 缩小再放大 */
+  .btn-container:active {
+    transform: scale(0.95);
+  }
+
+  /* 步骤记录容器 */
+  .steps-container {
+    margin-top: 4px;
+    padding-left: 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(136, 136, 136, 0.5);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    max-width: 100px;
+    word-wrap: break-word;
+    word-break: break-all;
+  }
+
+  .steps-label {
+    font-size: 12px;
+    color: #aaaaaa;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+
+  .steps-text {
+    font-size: 12px;
+    color: #87CEEB;
+    line-height: 1.4;
+  }
 </style>
 <script>
-console.log("test.html loaded");
+  console.log("test.html loaded");
 </script>

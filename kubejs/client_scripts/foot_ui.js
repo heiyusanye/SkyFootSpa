@@ -17,8 +17,8 @@ let trackedEntities = new Map()
 let entityCountdowns = new Map()  // 存储每个实体的上次倒计时值
 
 // UI配置
-let BAR_WIDTH = 700.0
-let BAR_HEIGHT = 700.0
+let BAR_WIDTH = 100.0
+let BAR_HEIGHT = 150.0
 let SCALE = 0.01
 let MAX_DISTANCE = 16
 let PI = 3.1415926
@@ -40,7 +40,7 @@ function pfGetFootPosition(bedX, bedY, bedZ, yaw) {
         footX = bedX - 1
     }
 
-    return { x: footX + 0.5, y: bedY, z: footZ + 0.5 }
+    return { x: footX, y: bedY + 1, z: footZ }
 }
 
 /**
@@ -52,7 +52,7 @@ function createSleepWindow(entity) {
     }
 
     let uuid = "" + entity.getUuid()
-    
+
     // 从手持物品NBT读取床位信息（物品NBT自动同步）
     let mainHand = entity.getMainHandItem()
     let bedX = 0, bedY = 0, bedZ = 0, bedYaw = 0
@@ -66,29 +66,48 @@ function createSleepWindow(entity) {
 
     // 计算脚的位置
     let footPos = pfGetFootPosition(bedX, bedY, bedZ, bedYaw)
-    let footBlockPos = new BlockPos(footPos.x, footPos.y - 1, footPos.z)
+    let footBlockPos = new BlockPos(footPos.x, footPos.y, footPos.z)
 
-    // 读取当前倒计时和需求清单
+    // 读取当前倒计时、需求清单、满意度和步骤
     let countdown = getCountdown(entity)
     entityCountdowns.set(uuid, countdown)
     console.log("[FOOT-UI-DATA] 创建窗口 - entity uuid=" + uuid)
     let demandList = getDemandList(entity)
-    console.log("[FOOT-UI-DATA] 最终需求清单: " + JSON.stringify(demandList))
+    let satisfaction = getSatisfaction(entity)
+    let steps = getSteps(entity)
+    console.log("[FOOT-UI-DATA] 最终需求清单: " + JSON.stringify(demandList) + ", 满意度=" + satisfaction + "%, 步骤=" + steps)
 
-    // 注意：路径是相对于 apricity/ 目录的
-    let window = new WorldWindow("kubejs/footui.html", footBlockPos, BAR_WIDTH, BAR_HEIGHT, MAX_DISTANCE)
-    window.setRotation(180 - (PI * bedYaw / 180), 0)
+    // 注意：路径是相对于 apricity/ 目录的 footui
+    let window = new WorldWindow("kubejs/test.html", footBlockPos, BAR_WIDTH, BAR_HEIGHT, MAX_DISTANCE)
+    if (bedYaw == -90) bedYaw = 270
+    window.setRotation(180 - (bedYaw * (PI / 180)) - (bedYaw % 180 == 0 ? PI : 0), 0)
+    console.log("[FOOT-UI-DATA] 设置窗口旋转角度: " + bedYaw + " -> " + (180 - (bedYaw * (PI / 180) + PI)))
     window.setScale(SCALE)
 
     WorldWindow.addWindow(window)
-    
+
     sleepWindows.set(uuid, window)
     trackedEntities.set(uuid, entity)
-    
-    // 设置初始倒计时和需求清单显示
+
+    // 给脚按钮添加点击事件
+    let footBtn = window.document.getElementById("footBtn")
+    if (footBtn != null) {
+        footBtn.addEventListener("mousedown", event => {
+            console.log("[FOOT-UI] 点击脚按钮，发送请求到服务端 uuid=" + uuid)
+            // 发送网络包到服务端
+            let player = Minecraft.getInstance().player
+            if (player != null) {
+                player.sendData('foot_click_demand', { entityUuid: uuid })
+            }
+        })
+    }
+
+    // 设置初始倒计时、需求清单、满意度和步骤显示
     updateCountdownDisplay(window, countdown)
     updateDemandListDisplay(window, demandList)
-    
+    updateSatisfactionDisplay(window, satisfaction)
+    updateStepsDisplay(window, steps)
+
     console.log("[FOOT-UI] 创建UI窗口 uuid=" + uuid + " countdown=" + countdown)
     return window
 }
@@ -193,6 +212,76 @@ function getCountdown(entity) {
 }
 
 /**
+ * 从手持物品读取满意度
+ * 返回0-100的数值，如果没有则返回0
+ */
+function getSatisfaction(entity) {
+    if (entity == null) {
+        return 0
+    }
+    let mainHand = entity.getMainHandItem()
+    if (mainHand && mainHand.id === 'minecraft:redstone') {
+        let satisfaction = mainHand.nbt.getInt('pfSatisfaction')
+        if (satisfaction >= 0 && satisfaction <= 100) {
+            return satisfaction
+        }
+    }
+    return 0
+}
+
+// 整数代码到中文名称映射（用于解码）
+let STEP_CODE_TO_NAME = {
+    1: '脚背',
+    2: '脚掌',
+    3: '脚后跟',
+    4: '脚趾',
+    5: '脚心'
+}
+
+/**
+ * 从手持物品读取步骤记录（字符串格式：逗号分隔的整数）
+ * 返回解码后的步骤字符串，如果没有则返回空字符串
+ */
+function getSteps(entity) {
+    if (entity == null) {
+        return ""
+    }
+    let mainHand = entity.getMainHandItem()
+    if (mainHand && mainHand.id === 'minecraft:redstone') {
+        let stepsStr = mainHand.nbt.pfSteps
+        if (stepsStr && stepsStr.length > 0) {
+            // 解码字符串为中文
+            return decodeStepsString(stepsStr)
+        }
+    }
+    return ""
+}
+
+/**
+ * 解码步骤字符串为中文显示
+ * 输入："1,2,5"
+ * 输出："脚背 → 脚掌 → 脚心"
+ */
+function decodeStepsString(stepsStr) {
+    if (!stepsStr || stepsStr.length === 0) {
+        return ""
+    }
+
+    let codes = stepsStr.split(",")
+    let names = []
+
+    for (let i = 0; i < codes.length; i++) {
+        let code = parseInt(codes[i].trim(), 10)
+        let name = STEP_CODE_TO_NAME[code]
+        if (name) {
+            names.push(name)
+        }
+    }
+
+    return names.join(" → ")
+}
+
+/**
  * 更新窗口中的需求清单显示
  */
 function updateDemandListDisplay(window, demandList) {
@@ -200,41 +289,142 @@ function updateDemandListDisplay(window, demandList) {
         return
     }
     try {
-        // 更新需求清单各项目，为0则隐藏（保留布局空间）
-        let jiaobei = window.document.getElementById("demandJiaobei")
-        if (jiaobei != null) {
+        // 更新需求清单各项目
+        // 脚背
+        let countJiaobei = window.document.getElementById("countJiaobei")
+        if (countJiaobei != null) {
             let count = demandList['脚背'] || 0
-            jiaobei.innerText = "脚背: " + count + "次"
-            jiaobei.isVisible = false
+            if (count === 0) {
+                countJiaobei.innerText = "✓"
+                countJiaobei.setAttribute("class", "count done")
+            } else {
+                countJiaobei.innerText = count + "次"
+                countJiaobei.setAttribute("class", "count")
+            }
         }
-        
-        let jiaozhang = window.document.getElementById("demandJiaozhang")
-        if (jiaozhang != null) {
+
+        // 脚掌
+        let countJiaozhang = window.document.getElementById("countJiaozhang")
+        if (countJiaozhang != null) {
             let count = demandList['脚掌'] || 0
-            jiaozhang.innerText = "脚掌: " + count + "次"
+            if (count === 0) {
+                countJiaozhang.innerText = "✓"
+                countJiaozhang.setAttribute("class", "count done")
+            } else {
+                countJiaozhang.innerText = count + "次"
+                countJiaozhang.setAttribute("class", "count")
+            }
         }
-        
-        let jiaogen = window.document.getElementById("demandJiaogen")
-        if (jiaogen != null) {
+
+        // 脚后跟
+        let countJiaogen = window.document.getElementById("countJiaogen")
+        if (countJiaogen != null) {
             let count = demandList['脚后跟'] || 0
-            jiaogen.innerText = "脚后跟: " + count + "次"
+            if (count === 0) {
+                countJiaogen.innerText = "✓"
+                countJiaogen.setAttribute("class", "count done")
+            } else {
+                countJiaogen.innerText = count + "次"
+                countJiaogen.setAttribute("class", "count")
+            }
         }
-        
-        let jiaozhi = window.document.getElementById("demandJiaozhi")
-        if (jiaozhi != null) {
+
+        // 脚趾
+        let countJiaozhi = window.document.getElementById("countJiaozhi")
+        if (countJiaozhi != null) {
             let count = demandList['脚趾'] || 0
-            jiaozhi.innerText = "脚趾: " + count + "次"
+            if (count === 0) {
+                countJiaozhi.innerText = "✓"
+                countJiaozhi.setAttribute("class", "count done")
+            } else {
+                countJiaozhi.innerText = count + "次"
+                countJiaozhi.setAttribute("class", "count")
+            }
         }
-        
-        let jiaoxin = window.document.getElementById("demandJiaoxin")
-        if (jiaoxin != null) {
+
+        // 脚心
+        let countJiaoxin = window.document.getElementById("countJiaoxin")
+        if (countJiaoxin != null) {
             let count = demandList['脚心'] || 0
-            jiaoxin.innerText = "脚心: " + count + "次"
+            if (count === 0) {
+                countJiaoxin.innerText = "✓"
+                countJiaoxin.setAttribute("class", "count done")
+            } else {
+                countJiaoxin.innerText = count + "次"
+                countJiaoxin.setAttribute("class", "count")
+            }
         }
     } catch (e) {
         console.log("[FOOT-UI] 更新需求清单失败: " + e)
     }
 }
+
+/**
+ * 更新满意度显示 - 纯文本进度条形式
+ * 格式：满意度：[||||||||] 80%
+ * 小于等于30%红色，大于等于70%绿色，其余黄色
+ * 只显示填充部分，空白部分留空
+ */
+function updateSatisfactionDisplay(window, satisfaction) {
+    if (window == null || window.document == null) {
+        return
+    }
+    try {
+        let filledElement = window.document.getElementById("progressFilled")
+        let emptyElement = window.document.getElementById("progressEmpty")
+        let percentElement = window.document.getElementById("satisfactionPercent")
+        
+        if (filledElement != null && emptyElement != null && percentElement != null) {
+            // 根据满意度确定颜色
+            let colorClass = ""
+            if (satisfaction <= 30) {
+                colorClass = "red"      // 红色
+            } else if (satisfaction >= 70) {
+                colorClass = "green"    // 绿色
+            } else {
+                colorClass = "yellow"   // 黄色
+            }
+            
+            // 生成进度条（共20个字符宽度）
+            let totalBars = 20
+            let filledBars = Math.round((satisfaction / 100) * totalBars)
+            
+            // 只显示填充部分，空白部分留空
+            filledElement.innerText = "|".repeat(filledBars)
+            filledElement.setAttribute("class", "progress-filled " + colorClass)
+            
+            // 空白部分不显示任何内容
+            emptyElement.innerText = ""
+            
+            percentElement.innerText = satisfaction + "%"
+        }
+    } catch (e) {
+        console.log("[FOOT-UI] 更新满意度失败: " + e)
+    }
+}
+
+/**
+ * 更新步骤显示
+ */
+function updateStepsDisplay(window, steps) {
+    if (window == null || window.document == null) {
+        return
+    }
+    try {
+        console.log("[FOOT-UI] 更新步骤 +" + steps)
+        let stepsElement = window.document.getElementById("stepsText")
+        if (stepsElement != null) {
+            if (steps && steps.length > 0) {
+                stepsElement.innerText = steps
+            } else {
+                stepsElement.innerText = ""
+            }
+        }
+    } catch (e) {
+        console.log("[FOOT-UI] 更新步骤显示失败: " + e)
+    }
+}
+
 
 /**
  * 客户端Tick事件 - 检测并管理睡眠实体的UI
@@ -261,26 +451,34 @@ ClientEvents.tick(event => {
     for (let i = 0; i < nearbyEntities.length; i++) {
         let entity = nearbyEntities[i]
         if (entity == player) continue
-        
+
         let uuid = "" + entity.getUuid()
-        
+
         if (isSleeping(entity)) {
             // 实体正在睡眠，检查是否已有窗口
             if (!sleepWindows.has(uuid)) {
                 createSleepWindow(entity)
             } else {
-                // 检查倒计时是否变化，变化则更新显示
+                // 检查倒计时是否变化，变化则
+                let window = sleepWindows.get(uuid)
                 let currentCountdown = getCountdown(entity)
                 let lastCountdown = entityCountdowns.get(uuid) || 10
                 if (currentCountdown !== lastCountdown) {
                     entityCountdowns.set(uuid, currentCountdown)
-                    // 通过document API更新显示
-                    let window = sleepWindows.get(uuid)
+                    // 通过document APIuid)
                     updateCountdownDisplay(window, currentCountdown)
                     console.log("[FOOT-UI] 倒计时更新: " + lastCountdown + " -> " + currentCountdown)
                 }
                 let demandList = getDemandList(entity)
                 updateDemandListDisplay(window, demandList)
+                
+                // 更新满意度显示
+                let satisfaction = getSatisfaction(entity)
+                updateSatisfactionDisplay(window, satisfaction)
+                
+                // 更新步骤显示
+                let steps = getSteps(entity)
+                updateStepsDisplay(window, steps)
             }
         } else {
             // 实体不在睡眠状态，移除窗口（如果存在）
@@ -292,7 +490,7 @@ ClientEvents.tick(event => {
 
     // 清理超出范围的窗口
     let toRemove = []
-    sleepWindows.forEach(function(window, uuid) {
+    sleepWindows.forEach(function (window, uuid) {
         let entity = trackedEntities.get(uuid)
         if (entity == null || !entity.isAlive()) {
             toRemove.push(uuid)
@@ -303,7 +501,6 @@ ClientEvents.tick(event => {
             }
         }
     })
-    
     for (let i = 0; i < toRemove.length; i++) {
         removeSleepWindow(toRemove[i])
     }
@@ -319,7 +516,7 @@ ClientEvents.loggedIn(event => {
 })
 
 ClientEvents.loggedOut(event => {
-    sleepWindows.forEach(function(window, uuid) {
+    sleepWindows.forEach(function (window, uuid) {
         WorldWindow.removeWindow(window)
     })
     sleepWindows.clear()
