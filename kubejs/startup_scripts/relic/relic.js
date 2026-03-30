@@ -9,6 +9,7 @@ StartupEvents.registry('item', event => {
     for (let i = 0; i < relics.length; i ++) {
         let relic = relics[i]
         let e = event.create(global.getRelicId(relic.name))
+        .displayName(relic.nameZH && relic.nameZH.length > 0 ? relic.nameZH : relic.name)
         .attachCuriosCapability(
             CuriosJSCapabilityBuilder.create()
                 .onEquip((slotContext, oldStack, newStack) => {

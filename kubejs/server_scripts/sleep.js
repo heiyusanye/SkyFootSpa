@@ -108,7 +108,17 @@ global.pfShouldWakeUp = function (entity, level, bedPos, sleepDuration) {
             // 掉落钻石：数量 = 10 * 满意度 * 总步骤数
             let satisfaction = nbt.getInt('pfSatisfaction') || 0
             let totalSteps = nbt.getInt('pfTotalSteps') || 0
-            let diamondCount = Math.floor(satisfaction * totalSteps / 100)
+            let diamondMult = 1.0
+            try {
+                if (typeof nbt.getFloat === "function") {
+                    diamondMult = nbt.getFloat('pfDiamondMult') || 1.0
+                } else if (nbt.pfDiamondMult != null) {
+                    diamondMult = nbt.pfDiamondMult
+                }
+            } catch (e) {
+                diamondMult = 1.0
+            }
+            let diamondCount = Math.floor(Math.floor(satisfaction * totalSteps / 100) * diamondMult)
             console.log("[SLEEP-JS] 需求完成！掉落钻石: " + diamondCount + "个 (满意度=" + satisfaction + "%, 总步骤数=" + totalSteps + ")")
             if (diamondCount > 0) {
                 // 使用原版指令生成钻石物品

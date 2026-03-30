@@ -71,7 +71,8 @@ function pfSyncDemandList(entity, demandList) {
         pfDemandJiaogen: demandList['脚后跟'],
         pfDemandJiaozhi: demandList['脚趾'],
         pfDemandJiaoxin: demandList['脚心'],
-        pfSatisfaction: 0  // 满意度初始化为0%
+        pfSatisfaction: 0,  // 满意度初始化为0%
+        pfDiamondMult: 1.0
     }
     if (!item || item.id === 'minecraft:air') {
         // 如果没有手持物品，创建一个红石
@@ -85,6 +86,7 @@ function pfSyncDemandList(entity, demandList) {
         nbt.pfDemandJiaozhi = demandList['脚趾']
         nbt.pfDemandJiaoxin = demandList['脚心']
         nbt.pfSatisfaction = nbt.pfSatisfaction || 0  // 保留已有满意度或初始化为0
+        nbt.pfDiamondMult = nbt.pfDiamondMult || 1.0
         item = item.withNBT(nbt)
     }
     entity.setMainHandItem(item)
@@ -1017,20 +1019,32 @@ NetworkEvents.dataReceived('foot_click_demand', event => {
         // 获取当前需求值
         let currentValue = nbt.getInt(demandKey) || 0
         
+        if (typeof global.serveGetConfig !== "function" || typeof global.serveGetPartConfig !== "function") {
+            return
+        }
+        let cfg = global.serveGetConfig(player)
+        let partCfg = global.serveGetPartConfig(player, demandKey)
+        nbt.pfDiamondMult = cfg.diamondMult || 1.0
+
         // 对应需求-1，最小为0
         if (currentValue > 0) {
             currentValue--
             nbt[demandKey] = currentValue
             
-            // 满意度+10%，最大100%
+            let satGain = Math.max(0, Math.floor((partCfg.sat || 0) * (cfg.satMult || 1.0)))
+            let moneyGain = Math.floor((partCfg.money || 0) * (cfg.moneyMult || 1.0))
+
             let satisfaction = nbt.getInt('pfSatisfaction') || 0
-            satisfaction = Math.min(100, satisfaction + 10)
+            satisfaction = Math.min(100, satisfaction + satGain)
             nbt.pfSatisfaction = satisfaction
             
             // 记录总步骤数（用于计算钻石）
             let totalSteps = nbt.getInt('pfTotalSteps') || 0
             totalSteps++
             nbt.pfTotalSteps = totalSteps
+
+            global.serveAddMoney(player, moneyGain)
+            global.serveAddSatisfaction(player, satGain)
             
             console.log("[PF-NETWORK] 满意度更新: " + nbt)
             // 记录步骤到NBT - 使用字符串存储（逗号分隔的整数）
@@ -1050,6 +1064,13 @@ NetworkEvents.dataReceived('foot_click_demand', event => {
                         ", 满意度=" + satisfaction + "% (玩家手持: " + playerMainHand.id + ")" +
                         ", 总步骤数=" + totalSteps)
         } else {
+            let satLose = Math.max(0, Math.floor((cfg.wrongSat || 0) * (cfg.satMult || 1.0)))
+            let moneyLose = Math.floor((cfg.wrongMoney || 0) * (cfg.moneyMult || 1.0))
+            let satisfaction = nbt.getInt('pfSatisfaction') || 0
+            satisfaction = Math.max(0, satisfaction - satLose)
+            nbt.pfSatisfaction = satisfaction
+            global.serveAddMoney(player, moneyLose)
+            global.serveAddSatisfaction(player, -satLose)
             console.log("[PF-NETWORK] 需求已为0，无法减少")
         }
     } else {

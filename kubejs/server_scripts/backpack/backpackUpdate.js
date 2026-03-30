@@ -22,6 +22,9 @@ global.updatePlayerBackpack = function (player) {
   let curiosHelper = curiosApi.getCuriosHelper();
   let curiosAll = curiosHelper.getEquippedCurios(player).resolve().get();
 
+  if (typeof global.serveResetPlayerServeConfig === "function") {
+    global.serveResetPlayerServeConfig(player)
+  }
 
   for (let i = 0; i < getAttributeList().length; i++) {
     if (player.getAttributes().hasAttribute(getAttributeList()[i])) {
