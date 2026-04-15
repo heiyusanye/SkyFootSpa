@@ -47,5 +47,6 @@
   "minecraft:total_enchantment_power": null,
   "minecraft:villager_profession": null,
   "minecraft:waxed": null,
-  "minecraft:zombie_villager": null
+  "minecraft:zombie_villager": null,
+  "yes_steve_model:model_info": null
 }
